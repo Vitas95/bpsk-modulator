@@ -23,6 +23,7 @@
 *.syr
 *.twr
 *.twx
+*.tcl
 *.unroutes
 *.ut
 *.xpi
@@ -45,6 +46,7 @@
 
 # iMPACT generated files
 _impactbatch.log
+.ngc2edif.log
 impact.xsl
 impact_impact.xwbt
 ise_impact.cmd
@@ -59,6 +61,8 @@ par_usage_statistics.html
 usage_statistics_webtalk.html
 webtalk.log
 webtalk_pn.xml
+.xise
+
 
 # generated folders
 .Xil/
