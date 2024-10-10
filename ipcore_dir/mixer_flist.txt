@@ -1,0 +1,15 @@
+# Output products list for <mixer>
+_xmsgs\pn_parser.xmsgs
+mixer.asy
+mixer.gise
+mixer.ngc
+mixer.sym
+mixer.v
+mixer.veo
+mixer.xco
+mixer.xise
+mixer\doc\mult_gen_ds255.pdf
+mixer\doc\mult_gen_v11_2_readme.txt
+mixer\doc\mult_gen_v11_2_vinfo.html
+mixer_flist.txt
+mixer_xmdf.tcl

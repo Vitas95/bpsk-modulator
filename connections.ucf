@@ -1,0 +1,29 @@
+NET "clk_50MHz_i" LOC = T8 | TNM_NET = sys_clk_pin;
+TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 50000 kHz;
+
+// Input buttons
+NET "button_key1" LOC = C3 | IOSTANDARD = "LVCMOS33";
+NET "button_key2" LOC = D3 | IOSTANDARD = "LVCMOS33";
+NET "button_key3" LOC = E4 | IOSTANDARD = "LVCMOS33";
+NET "button_key4" LOC = E3 | IOSTANDARD = "LVCMOS33";
+NET "button_reset" 		LOC = L3 | IOSTANDARD = "LVCMOS33";
+
+// State display leds
+NET "status_led[3]" 	LOC = P4 | IOSTANDARD = "LVCMOS33";
+NET "status_led[2]" 	LOC = N5 | IOSTANDARD = "LVCMOS33";
+NET "status_led[1]"	LOC = P5 | IOSTANDARD = "LVCMOS33";
+NET "status_led[0]" 	LOC = M6 | IOSTANDARD = "LVCMOS33";
+
+// DAC bus and clock
+NET "dac_data[0]" LOC = A10 | IOSTANDARD = "LVCMOS33";
+NET "dac_data[1]" LOC = A9 | IOSTANDARD = "LVCMOS33";
+NET "dac_data[2]" LOC = C8 | IOSTANDARD = "LVCMOS33";
+NET "dac_data[3]" LOC = A8 | IOSTANDARD = "LVCMOS33";
+NET "dac_data[4]" LOC = B8 | IOSTANDARD = "LVCMOS33";
+NET "dac_data[5]" LOC = A7 | IOSTANDARD = "LVCMOS33";
+NET "dac_data[6]" LOC = A6 | IOSTANDARD = "LVCMOS33";
+NET "dac_data[7]" LOC = B6 | IOSTANDARD = "LVCMOS33";
+NET "dac_clock"	LOC = A5 | IOSTANDARD = "LVCMOS33";
+
+PIN "pll_main/clkout2_buf.O" CLOCK_DEDICATED_ROUTE = FALSE;
+PIN "pll_main/clkout1_buf.O" CLOCK_DEDICATED_ROUTE = FALSE;

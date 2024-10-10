@@ -1,0 +1,20 @@
+# Output products list for <fir_filter>
+_xmsgs\pn_parser.xmsgs
+fir_filter.asy
+fir_filter.gise
+fir_filter.mif
+fir_filter.ngc
+fir_filter.sym
+fir_filter.v
+fir_filter.veo
+fir_filter.xco
+fir_filter.xise
+fir_filterCOEFF_auto0_0.mif
+fir_filterCOEFF_auto0_1.mif
+fir_filterCOEFF_auto0_2.mif
+fir_filterCOEFF_auto0_3.mif
+fir_filterCOEFF_auto0_4.mif
+fir_filter_flist.txt
+fir_filter_readme.txt
+fir_filter_xmdf.tcl
+fir_filterfilt_decode_rom.mif

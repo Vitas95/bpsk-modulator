@@ -1,0 +1,16 @@
+# Output products list for <filter>
+_xmsgs\pn_parser.xmsgs
+demo_tb\tb_filter.vhd
+filter.asy
+filter.gise
+filter.ngc
+filter.sym
+filter.v
+filter.veo
+filter.xco
+filter.xise
+filter\doc\cic_compiler_v3_0_readme.txt
+filter\doc\cic_compiler_v3_0_vinfo.html
+filter\doc\ds845_cic_compiler.pdf
+filter_flist.txt
+filter_xmdf.tcl
