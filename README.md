@@ -31,7 +31,7 @@ IP block with FIR filtration. Filter use 9 tap vector:`[0,17,38,57,64,57,38,17,0
 
 ### CIC filter
 IP block of the upsampling CIC filter with differential delay equal to 1, upsampling factor 20 and 4 stages. An addition explanation will be added after the replacement of these IP blocks with a self-written one.
-Since the CIC filter contains a lot of summarizing operations, the output is a 24-bit bus. To fit the 8-bit DAC data input, the result of the filtration is divided by '16'd8192', and all higher bits (24-14) are just discarded. !!!!!!!!!!!!!!!!!!!
+Since the CIC filter contains a lot of summarizing operations, the output is a 24-bit bus. To fit the 8-bit DAC data input, the result of the filtration is divided by '16'd8192', and all higher bits (24-14) are just discarded.
 
 ### NCO
 IP block that generates sinusoidal signal with 8-bit resolution. Output frequency, fout, is a function of a clock frequency (fclk = 80 MHz), phase accumulator counter width (Bn = 16-bit) and phase increment (Inc = `16'd8192`). It can be defined in Hertz with the following formula: $\ fout = \frac{fclk Inc}{2^{Bn}}$. With all current settings the output frequency is equal to 10 MHz.
@@ -54,7 +54,7 @@ With such a distortion, one symbol interferes with subsequent symbols. The prese
 
 Limitations in signal bandwidth can be dictated not only by the bandwidth of the channel itself but also by the close proximity of adjacent communication channels. Thus, demands on signal bandwidth are required by the different communication standards. In this case, it is necessary to artificially reduce the bandwidth of the transmitting signal. Such a filtration also should not have an influence on the transmitted symbols.
 
-Pulse shaping is performed in order to meet requirements in the signal bandwidth by artificial compressing the signal bandwidth without introducing ISI. This problem was discussed in detail by Niquist [!!!!!!!]. He showed that if each pulse of the data sequence has a $\ sinc(t/T) $ shape, pulses could be detected without an ISI. Such a pulse shaping can be performed with a filter with the required pulse response.
+Pulse shaping is performed in order to meet requirements in the signal bandwidth by artificial compressing the signal bandwidth without introducing ISI. This problem was [discussed](https://en.wikipedia.org/wiki/Nyquist_ISI_criterion) in detail by Niquist. He showed that if each pulse of the data sequence has a $\ sinc(t/T) $ shape, pulses could be detected without an ISI. Such a pulse shaping can be performed with a filter with the required pulse response.
 
 <p align="center">
 <img src="md_images/nyquist_pulse_shaping.PNG" alt="Example of the Nyquist pulse shaping"/>
