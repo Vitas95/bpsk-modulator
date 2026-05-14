@@ -103,42 +103,68 @@ To replicate this project, follow the steps below. Ensure you have an FPGA evalu
 ### Steps:
 
 1. **Set Up Your Development Environment:**
-   - Install the **ISE Design Suite** or **Vivado** if you're using a Xilinx FPGA. For Spartan 6, **ISE Design Suite** was used.
-   - If you are using an Altera board, install **Quartus Prime**.
-   - Set up your project in the FPGA development environment by selecting the correct target FPGA model.
+   - Install **ISE Design Suite 14.7** (used for the Spartan-6 target `xc6slx16-ftg256-3`).
+   - Install **Python 3.7+** — required to run the build script.
+   - If your design contains SystemVerilog (`.sv`) files, install [**sv2v**](https://github.com/zachjs/sv2v) and make sure it is available on your system `PATH`. The script will invoke it automatically when `.sv` files are detected.
+   - Set the `XILINX_ROOT` variable at the top of `build.py` to match your ISE installation path (default: `C:\Xilinx\14.7\ISE_DS\ISE`).
 
 2. **Clone the Repository:**
-   - Download or clone the current repository to your local machine.
-   - Add all the Verilog files (such as `main.v`, `data_generator.v`, `upsampler.v`, etc.) to your project. Ensure that all dependencies are included.
+   - Download or clone this repository to your local machine.
+   - The build script expects the following directory layout:
+     ```
+     project-root/
+     ├── top.sv / top.v        # Top-level module
+     ├── submodules/            # All sub-modules (.v / .sv) and IP cores (.ngc)
+     ├── constraints/           # Exactly one .ucf constraints file
+     ├── build/                 # Created automatically by the script
+     ├── releases/              # Created automatically on --release
+     └── build.py
+     ```
+   - Place all Verilog/SystemVerilog source files under `submodules/`. The top-level file (`top.sv` or `top.v`) must reside in the project root.
 
-3. **Regenerate IP Blocks (if required):**
-   - If you are using an FPGA board different from the Spartan 6 or a DAC board different from the AD/DA AN108 Alinx, you may need to regenerate some of the IP blocks (e.g., CIC filter, FIR filter, NCO, modulator). Follow the instructions in your FPGA toolchain to regenerate these blocks, ensuring they are configured to match the specifications of your board.
+3. **Configure Constraints (Pin Assignment):**
+   - Place your `.ucf` constraints file in the `constraints/` directory. The script validates that exactly one `.ucf` file is present and will abort with a clear error if it is missing or if multiple files are found.
+   - The `.ucf` file must define all required pin assignments, including:
+     - **Clock Pin**: the main clock input (`clk_50MHz_i`) mapped to the correct FPGA pin.
+     - **Button Pins**: reset and control buttons (e.g., `button_reset`, `button_key1`).
+     - **DAC Output Pins**: `dac_data` and `dac_clock` signals connected to the DAC board.
+   - If you are using a different FPGA board, update the `DEVICE` constant in `build.py` accordingly and regenerate any required IP cores (CIC filter, FIR filter, NCO, modulator) using the ISE IP wizard.
 
-4. **Compile the Project:**
-   - Once all the Verilog files and IP blocks are added, compile the project within your FPGA toolchain.
-   - During compilation, check for any errors or warnings, particularly related to mismatched IP block configurations if you've modified them.
+4. **Build the Project:**
+   The build script (`build.py`) drives the full ISE toolchain — XST synthesis, NGDBuild, Map, PAR, and Bitgen — without opening the ISE GUI. Run it from the project root:
 
-5. **Pin Assignment:**
-   - After successful compilation, map the inputs and outputs of the module to the appropriate pins on your FPGA board. Pay special attention to the following:
-     - **Clock Pin**: Ensure that the main clock input (`clk_50MHz_i`) is connected to the correct pin for your FPGA's clock signal.
-     - **Button Pins**: Assign the reset and control buttons (e.g., `button_reset`, `button_key1`) to physical buttons on the FPGA board.
-     - **DAC Output Pins**: Map the `dac_data` and `dac_clock` signals to the appropriate pins connected to the DAC board.
+   | Goal | Command |
+   |---|---|
+   | Synthesize and implement | `python build.py --build` |
+   | Clean rebuild | `python build.py --rebuild` |
+   | Save bitstream to `releases/` | `python build.py --release` |
+   | Full flow (build + release) | `python build.py --all` |
 
-6. **Upload the Bitstream to the FPGA:**
-   - Once the pin assignments are complete, generate the bitstream and upload it to the FPGA. In **ISE Design Suite**, use the "Generate Bitstream" option, and in **Vivado/Quartus**, use the equivalent option for bitstream generation.
+   The script will:
+   - Automatically detect SystemVerilog sources and convert them to Verilog-2001 via `sv2v` before passing files to XST.
+   - Collect all `.ngc` IP core files from `submodules/` and pass their directories to NGDBuild via `-sd` flags.
+   - Report the active stage (`XST → NGDBUILD → MAP → PAR → BITGEN`) and stop immediately with an error message if any stage fails.
+
+5. **Save and Distribute the Bitstream:**
+   Running with `--release` (or `--all`) copies the generated `top.bit` from `build/` into the `releases/` directory with a timestamp suffix (e.g., `top_20250514_1530.bit`), so previous builds are never overwritten.
+
+6. **Program the FPGA:**
+   - Open **iMPACT** (part of ISE Design Suite) and load the `.bit` file from `build/` or `releases/`.
+   - Alternatively, use any JTAG programmer compatible with your board.
 
 7. **Connect the DAC and Monitor Output:**
-   - After programming the FPGA, ensure the DAC board is properly connected to the FPGA evaluation board.
-   - Using an **oscilloscope** or **spectrum analyzer**, observe the DAC’s output for the upsampled data signals.
-     - In the initial stages, the **pseudorandom data** generated by the module will be visible.
-     - By pressing the control buttons on the FPGA, you can switch between different stages of the signal conversion (upsampled data, filtered data, modulated signal).
+   - After programming the FPGA, ensure the DAC board (AD/DA AN108 Alinx or equivalent) is properly connected to the evaluation board.
+   - Using an **oscilloscope** or **spectrum analyzer**, observe the DAC output:
+     - Initially, **pseudorandom data** generated by the module will be visible.
+     - Press the control buttons on the FPGA to step through signal stages: upsampled data → filtered data → modulated signal.
 
-8. **Troubleshooting and Optimization:**
-   - If the output does not appear as expected, verify the following:
+8. **Troubleshooting:**
+   - If the build fails, check the console output — the script prints the failing stage name. Detailed tool logs (`.syr`, `.map`, `.par`) are written to the `build/` directory.
+   - If the output signal looks incorrect after programming, verify:
      - The correct clock signal is applied to the FPGA.
-     - The pin assignments are correctly mapped.
+     - Pin assignments in the `.ucf` file match your physical board.
      - The DAC board is properly powered and connected.
-   - You can also tweak the **upsampling factor** or apply different **filtering techniques** if required for your specific hardware setup.
+   - To adapt the design to different hardware, adjust the upsampling factor or filtering parameters in the relevant submodules and re-run `python build.py --rebuild`.
 
 ## Technical Challenges
 

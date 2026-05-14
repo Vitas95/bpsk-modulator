@@ -1,6 +1,5 @@
 # intermediate build files
 *.bgn
-*.bit
 *.bld
 *.cmd_log
 *.drc
@@ -9,7 +8,6 @@
 *.msd
 *.msk
 *.ncd
-*.ngc
 *.ngd
 *.ngr
 *.pad
@@ -77,6 +75,7 @@ xlnx_auto_0_xdb/
 xst/
 _ngo/
 _xmsgs/
+build/
 
 # ignore powerpoint file where I draw the images
 /md_images/draw_images.pptx
