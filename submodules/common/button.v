@@ -27,7 +27,7 @@ module button(
 // Registers
 reg        button_q, button_q2;
 reg        rs, rs_q;
-reg [13:0] counter;
+reg [18:0] counter;
 
 // Conditions
 wire increment = button_q2 & ~&counter;

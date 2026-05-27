@@ -6,27 +6,31 @@ module top(
 	input button_reset,
 	
 	// DAC conections
-   output reg [7:0] dac_data,
-	output	    	  dac_clock,
+	output reg [7:0] dac_data,
+	output	    	 dac_clock,
 	
 	// Test input buttons
-   input button_key1,
+   	input 	button_key1,
 	input	button_key2,
 	input	button_key3,
 	input	button_key4,
 	
 	// Indication leds
-	output reg [3:0] status_led
+	output reg [3:0] status_led,
+
+	// 7-seg display
+	output [5:0]	dig,
+	output [7:0] 	segment
 );
 
 // Registers
-reg [15:0] phase_accum;
-reg		  main_pll_locked_q;
+reg [15:0] 	phase_accum, delta_phi;
+reg		  	main_pll_locked_q;
 
 // Connections
-wire clk_1MHz, clk_4MHz, clk_5MHz, 
-	  clk_50MHz, clk_80MHz;
-wire main_pll_locked;
+wire 		clk_1MHz, clk_4MHz, clk_5MHz, 
+	  		clk_50MHz, clk_80MHz;
+wire 		main_pll_locked;
 wire [7:0]  samples;
 wire [7:0]  upsampled_data;
 wire [16:0] pulse_shaped_data;
@@ -37,14 +41,15 @@ wire [7:0]  nco_out;
 wire [15:0] modulation;
 wire [7:0]  modulator_out;
 wire [1:0]  state;
-wire button_1, button_2,
-	  button_3, button_4;
+wire 		button_1, button_2,
+	  		button_3, button_4;
+wire [19:0] bcd_number;
 
 // States of the state machine
 parameter [1:0] SHOW_UPSAMPLED = 2'b00,
-					 SHOW_SHAPED	 = 2'b01,
-					 SHOW_FILTERED  = 2'b10,
-					 SHOW_MODULATOR = 2'b11;
+				SHOW_SHAPED	 = 2'b01,
+				SHOW_FILTERED  = 2'b10,
+				SHOW_MODULATOR = 2'b11;
 
 // PLL and clock managment
 pll pll_main (
@@ -75,26 +80,26 @@ data_rate_pll pll_data (
 assign dac_clock = clk_80MHz;
 
 // Control buttons processing
-button b_data(
+button b_state_up(
 	.clock (clk_50MHz),
 	.button_n (button_key1),
 	.out (button_1)
 );
 
-button b_fir(
+button b_state_down(
 	.clock (clk_50MHz),
 	.button_n (button_key2),
 	.out (button_2)
 );
 
-button b_nco(
-	.clock (clk_50MHz),
+button b_freq_up(
+	.clock (clk_80MHz),
 	.button_n (button_key3),
 	.out (button_3)
 );
 
-button b_modulator(
-	.clock (clk_50MHz),
+button b_freq_down(
+	.clock (clk_80MHz),
 	.button_n (button_key4),
 	.out (button_4)
 );
@@ -114,8 +119,6 @@ state_machine sm1(
 	// Input signals for the state machine
    .button_1(button_1),
    .button_2(button_2),
-   .button_3(button_3),
-   .button_4(button_4),
    
 	// Output is a current state of the machine
 	.state(state)
@@ -123,7 +126,7 @@ state_machine sm1(
 
 // Data samples generation
 data_generator samples_gen(
-	 .clock(clk_1MHz),
+	.clock(clk_1MHz),
     .reset(data_pll_reset),
     .samples(samples)
 );
@@ -142,7 +145,6 @@ upsampler #(
 
 // FIR filter
 ////////////////////////////////////////////////
-
 fir_filter pulse_shaping (
 	.clk(clk_4MHz), // input clk
 	.rfd(rfd), // output rfd
@@ -165,13 +167,28 @@ filter up_cic (
 );
  assign upsampled_filtered = m_axis_data_tdata[20:13];
 
-
 // NCO 
-// With 16'd8192phase incremet and 80 MHz sample 
-// rate output frequency of the NCO is 10 MHz. 
+////////////////////////////////////////////////
+// Variable frequency with button 3 and 4.
+// Frequency calculation example:
+// delta_phi = int(F_out / F_clk * 2**16)
+// delta_phi = int(10e6 / 80e6 * 65536) = 8192
+// So initial frequency is 10 MHz.
+// Maximum frequency - 30 MHz, minimum - 0.15625 MHz.
+always @(posedge clk_80MHz) begin
+	if (reset) delta_phi <= 16'd8192;
+	else if ((delta_phi <= 16'd24576) && (button_3)) begin
+		delta_phi <= delta_phi + 16'd128;
+	end else if ((delta_phi > 16'd128) && (button_4)) begin
+		delta_phi <= delta_phi - 16'd128;
+	end else begin
+		delta_phi <= delta_phi;
+	end
+end
+
 always @(posedge clk_80MHz) begin
 	if (reset) phase_accum <= 0;
-	else phase_accum <= phase_accum + 16'd8192;
+	else phase_accum <= phase_accum + delta_phi;
 end
 
 nco nco_sine (
@@ -179,6 +196,29 @@ nco nco_sine (
   .phase_in(phase_accum), // input [15 : 0] phase_in
   .sine(nco_out) // output [7 : 0] sine
 );
+////////////////////////////////////////////////
+
+// Display delta phi on 7-seg display
+////////////////////////////////////////////////
+bin2bcd bin2bcd_inst(
+    .bin(delta_phi),
+    .bcd(bcd_number)
+);
+
+display_counters display_counters_inst(
+	.clock_80Mhz_i(clk_80MHz),
+	.reset(reset),
+	.dig(dig)
+);
+
+display_decoder display_decoder_inst(
+	.clock(clk_80MHz),
+	.reset(reset),
+	.bcd(bcd_number),
+	.dig(dig),
+	.segment(segment)
+);
+////////////////////////////////////////////////
 
 // Modulation
 ////////////////////////////////////////////////
@@ -200,7 +240,7 @@ always @(*) begin
 		SHOW_SHAPED:    dac_data = filtered_data + 8'b1000_0000; // After pulse shaping
 		SHOW_FILTERED:  dac_data = upsampled_filtered + 8'b1000_0000;	// Data after anti-imaging filtration
 		SHOW_MODULATOR: dac_data = modulator_out + 8'b1000_0000;	// Modulated signal
-		default:			 dac_data = 8'b0000_0000;
+		default:		dac_data = samples;
 	endcase
 end
 
@@ -211,7 +251,7 @@ always @(*) begin
 		SHOW_SHAPED:    status_led = 4'b0100;
 		SHOW_FILTERED:  status_led = 4'b0010;
 		SHOW_MODULATOR: status_led = 4'b0001;
-		default:			 status_led = 4'b1000;
+		default:		status_led = 4'b1000;
 	endcase
 end
 
