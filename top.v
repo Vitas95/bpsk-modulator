@@ -25,17 +25,16 @@ module top(
 
 // Registers
 reg [15:0] 	phase_accum, delta_phi;
-reg		  	main_pll_locked_q;
+reg		  	pll_locked_q;
 
 // Connections
-wire 		clk_1MHz, clk_4MHz, clk_5MHz, 
-	  		clk_50MHz, clk_80MHz;
-wire 		main_pll_locked;
+wire 		clk_80MHz;
+wire 		pll_locked, reset, pll_reset, reset_b;
 wire [7:0]  samples;
 wire [7:0]  upsampled_data;
 wire [16:0] pulse_shaped_data;
 wire [7:0]  filtered_data;
-wire [31:0] m_axis_data_tdata;
+wire [31:0] cic_data_out;
 wire [7:0]  upsampled_filtered;
 wire [7:0]  nco_out;
 wire [15:0] modulation;
@@ -44,6 +43,7 @@ wire [1:0]  state;
 wire 		button_1, button_2,
 	  		button_3, button_4;
 wire [19:0] bcd_number;
+wire 		samples_valid, upsampled_valid;	
 
 // States of the state machine
 parameter [1:0] SHOW_UPSAMPLED = 2'b00,
@@ -54,40 +54,27 @@ parameter [1:0] SHOW_UPSAMPLED = 2'b00,
 // PLL and clock managment
 pll pll_main (
 	// Clock in ports
-   .clk_50MHz_i(clk_50MHz_i),
+	.clk_50MHz_i(clk_50MHz_i),
 	// Clock out ports    
-   .clk_80MHz(clk_80MHz),
-	.clk_50MHz(clk_50MHz),
-	.clk_5MHz(clk_5MHz),
-	.clk_4MHz(clk_4MHz),
-	.LOCKED(main_pll_locked)
+	.clk_80MHz(clk_80MHz),
+	.LOCKED(pll_locked)
 );
 
-always @(posedge clk_5MHz) begin
-	main_pll_locked_q <= main_pll_locked;
+always @(posedge clk_80MHz) begin
+	pll_locked_q <= pll_locked;
 end
 
-wire data_pll_reset = main_pll_locked & ~main_pll_locked_q;
-
-data_rate_pll pll_data (
-	// Clock in ports
-	.clk_5MHz(clk_5MHz),
-	.RESET(data_pll_reset),
-   // Clock out ports
-	.clk_1MHz(clk_1MHz)
-);
-
-assign dac_clock = clk_80MHz;
+assign pll_reset = pll_locked & ~pll_locked_q;
 
 // Control buttons processing
 button b_state_up(
-	.clock (clk_50MHz),
+	.clock (clk_80MHz),
 	.button_n (button_key1),
 	.out (button_1)
 );
 
 button b_state_down(
-	.clock (clk_50MHz),
+	.clock (clk_80MHz),
 	.button_n (button_key2),
 	.out (button_2)
 );
@@ -106,14 +93,16 @@ button b_freq_down(
 
 // Reset button and all reset processing
 button b_reset(
-	.clock (clk_50MHz),
+	.clock (clk_80MHz),
 	.button_n (button_reset),
-	.out (reset)
+	.out (reset_b)
 );
+
+assign reset = reset_b | pll_reset;
 
 // State machine
 state_machine sm1(
-	.clock(clk_50MHz),
+	.clock(clk_80MHz),
 	.reset(reset),
 	
 	// Input signals for the state machine
@@ -125,32 +114,39 @@ state_machine sm1(
 );
 
 // Data samples generation
-data_generator samples_gen(
-	.clock(clk_1MHz),
-    .reset(data_pll_reset),
-    .samples(samples)
+data_generator #(
+	.CLK_PER_VALID(80)
+) samples_gen ( 
+	.clock(clk_80MHz),
+    .reset(reset),
+    .m_axis_tdata(samples),
+	.m_axis_tvalid(samples_valid)
 );
 
 // Upsampling data
 upsampler #(
-	.DATA_WIDTH(8),
-	.N(4),
-	.HOLD(0)
-) up_4 (
-	.clock(clk_4MHz),
-	.reset(reset),
-	.data_in(samples),
-	.upsampled_data(upsampled_data)
+    .CLK_FREQ        (80_000_000),
+    .IN_SAMPLE_RATE  (1_000_000),
+    .OUT_SAMPLE_RATE (4_000_000),
+    .DATA_WIDTH      (8),
+    .HOLD            (0)
+) u_upsampler (
+    .clock          (clk_80MHz),
+    .reset          (reset),
+    .s_axis_tdata	(samples),
+    .s_axis_tvalid	(samples_valid),
+    .m_axis_tdata	(upsampled_data),
+    .m_axis_tvalid	(upsampled_valid)
 );
 
 // FIR filter
 ////////////////////////////////////////////////
 fir_filter pulse_shaping (
-	.clk(clk_4MHz), // input clk
-	.rfd(rfd), // output rfd
-	.rdy(rdy), // output rdy
+	.clk(clk_80MHz), // input clk
 	.din(upsampled_data), // input [7 : 0] din
-	.dout(pulse_shaped_data) // output [16 : 0] dout
+	.rfd(upsampled_valid), // output rfd
+	.dout(pulse_shaped_data), // output [16 : 0] dout
+	.rdy(pulse_shaped_valid) // output rdy
 ); 
 
 assign filtered_data = pulse_shaped_data[7:0];
@@ -160,12 +156,12 @@ assign filtered_data = pulse_shaped_data[7:0];
 filter up_cic (
   .aclk(clk_80MHz), // input aclk
   .s_axis_data_tdata(filtered_data), // input [7 : 0] s_axis_data_tdata
-  .s_axis_data_tvalid(clk_4MHz), // input s_axis_data_tvalid
-  //.s_axis_data_tready(s_axis_data_tready), // output s_axis_data_tready
-  .m_axis_data_tdata(m_axis_data_tdata) // output [23 : 0] m_axis_data_tdata
+  .s_axis_data_tvalid(pulse_shaped_valid), // input s_axis_data_tvalid
+
+  .m_axis_data_tdata(cic_data_out) // output [23 : 0] cic_data_out
   //.m_axis_data_tvalid(m_axis_data_tvalid) // output m_axis_data_tvalid
 );
- assign upsampled_filtered = m_axis_data_tdata[20:13];
+ assign upsampled_filtered = cic_data_out[20:13];
 
 // NCO 
 ////////////////////////////////////////////////
@@ -234,6 +230,8 @@ assign modulator_out = modulation[14:7];
 
 // Chooose output samples for the DAC.
 // Signed to unsigned conversion is performed.
+assign dac_clock = clk_80MHz;
+
 always @(*) begin
 	case(state)
 		SHOW_UPSAMPLED: dac_data = samples;	// Display data

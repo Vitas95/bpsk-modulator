@@ -35,8 +35,8 @@ wire decrement = ~button_q2 & |counter;
 
 always @(posedge clock) begin
   // Processing input button
-  button_q 	= ~button_n;
-  button_q2 = button_q;
+  button_q 	<= ~button_n;
+  button_q2 <= button_q;
   
   if (increment)
     counter <= counter + 1;

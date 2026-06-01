@@ -1,6 +1,7 @@
 NET "clk_50MHz_i" LOC = T8 | TNM_NET = sys_clk_pin;
 TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 50000 kHz;
 
+
 # Input buttons
 NET "button_key1"   LOC = C3 | IOSTANDARD = "LVCMOS33";
 NET "button_key2"   LOC = D3 | IOSTANDARD = "LVCMOS33";
@@ -43,5 +44,5 @@ NET "dig[4]"    LOC = E8 | IOSTANDARD = "LVCMOS33";
 NET "dig[5]"    LOC = D8 | IOSTANDARD = "LVCMOS33";
 
 PIN "pll_main/clkout2_buf.O" CLOCK_DEDICATED_ROUTE = FALSE;
-PIN "pll_main/clkout1_buf.O" CLOCK_DEDICATED_ROUTE = FALSE;
+#PIN "pll_main/clkout1_buf.O" CLOCK_DEDICATED_ROUTE = FALSE;
 
