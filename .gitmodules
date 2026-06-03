@@ -1,0 +1,6 @@
+[submodule "submodules/cordic"]
+	path = submodules/cordic
+	url = https://github.com/Vitas95/cordic.git
+[submodule "build-script"]
+	path = build-script
+	url = https://github.com/Vitas95/build-script.git

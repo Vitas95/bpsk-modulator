@@ -186,12 +186,6 @@ always @(posedge clk_80MHz) begin
 	if (reset) phase_accum <= 0;
 	else phase_accum <= phase_accum + delta_phi;
 end
-
-nco nco_sine (
-  .clk(clk_80MHz), // input clk
-  .phase_in(phase_accum), // input [15 : 0] phase_in
-  .sine(nco_out) // output [7 : 0] sine
-);
 ////////////////////////////////////////////////
 
 // Display delta phi on 7-seg display
@@ -216,16 +210,24 @@ display_decoder display_decoder_inst(
 );
 ////////////////////////////////////////////////
 
-// Modulation
+// Modulation with CORDIC
 ////////////////////////////////////////////////
-mixer modulator (
-  .clk(clk_80MHz), // input clk
-  .a(upsampled_filtered), // input [7 : 0] a
-  .b(nco_out), // input [7 : 0] b
-  .p(modulation) // output [15 : 0] p
+cordic_top #(
+    .STAGES(7),
+    .DATA_WIDTH(8),
+    .PHASE_WIDTH(16)
+) cordic_inst (
+    .clk(clk_80MHz),
+    .rst(reset),
+
+    .X_in(upsampled_filtered),
+    .Y_in(8'd0),
+    .X_out(modulator_out),
+    .phase_in(phase_accum),
+    .phase_valid_in(1'b1)
 );
 
-assign modulator_out = modulation[14:7];
+//assign modulator_out = modulation[14:7];
 ////////////////////////////////////////////////
 
 // Chooose output samples for the DAC.
