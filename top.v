@@ -35,7 +35,7 @@ wire [7:0]  upsampled_data;
 wire [16:0] pulse_shaped_data;
 wire [7:0]  filtered_data;
 wire [31:0] cic_data_out;
-wire [7:0]  upsampled_filtered;
+wire [15:0] upsampled_filtered;
 wire [7:0]  nco_out;
 wire [15:0] modulation;
 wire [7:0]  modulator_out;
@@ -161,7 +161,7 @@ filter up_cic (
   .m_axis_data_tdata(cic_data_out) // output [23 : 0] cic_data_out
   //.m_axis_data_tvalid(m_axis_data_tvalid) // output m_axis_data_tvalid
 );
- assign upsampled_filtered = cic_data_out[20:13];
+ assign upsampled_filtered = cic_data_out[20:5];
 
 // NCO 
 ////////////////////////////////////////////////
@@ -213,21 +213,21 @@ display_decoder display_decoder_inst(
 // Modulation with CORDIC
 ////////////////////////////////////////////////
 cordic_top #(
-    .STAGES(7),
-    .DATA_WIDTH(8),
+    .STAGES(14),
+    .DATA_WIDTH(16),
     .PHASE_WIDTH(16)
 ) cordic_inst (
     .clk(clk_80MHz),
     .rst(reset),
 
     .X_in(upsampled_filtered),
-    .Y_in(8'd0),
-    .X_out(modulator_out),
+    .Y_in(16'd0),
+    .X_out(modulation),
     .phase_in(phase_accum),
     .phase_valid_in(1'b1)
 );
 
-//assign modulator_out = modulation[14:7];
+assign modulator_out = modulation[15:8];
 ////////////////////////////////////////////////
 
 // Chooose output samples for the DAC.
