@@ -215,7 +215,8 @@ display_decoder display_decoder_inst(
 cordic_top #(
     .STAGES(14),
     .DATA_WIDTH(16),
-    .PHASE_WIDTH(16)
+    .PHASE_WIDTH(16),
+	.PIPLINED(1)
 ) cordic_inst (
     .clk(clk_80MHz),
     .rst(reset),
