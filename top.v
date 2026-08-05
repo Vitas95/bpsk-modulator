@@ -141,18 +141,39 @@ upsampler #(
 
 // FIR filter
 ////////////////////////////////////////////////
-fir_filter pulse_shaping (
-	.clk(clk_80MHz), // input clk
-	.din(upsampled_data), // input [7 : 0] din
-	.rfd(upsampled_valid), // output rfd
-	.dout(pulse_shaped_data), // output [16 : 0] dout
-	.rdy(pulse_shaped_valid) // output rdy
-); 
+mac_fir #(
+    .DATA_WIDTH(8),
+    .COEFF_WIDTH(8)
+) pulse_shaping(
+    .clk(clk_80MHz),
+    .rst(reset),
+    .data_in(upsampled_data),
+    .valid_in(upsampled_valid),
+    .data_out(pulse_shaped_data),
+    .valid_out(pulse_shaped_valid)
+);
 
 assign filtered_data = pulse_shaped_data[7:0];
+
 ////////////////////////////////////////////////
 
 // Upsampling to DAC sample rate and anti imaging filtration
+// cic_filter #(
+//     .DATA_WIDTH(8),
+//     .UPSAMPLING(20),
+//     .STAGES(4),
+//     .DIFF_DELAY(1)
+// ) up_cic (
+//     .clk(clk_80MHz),
+//     .rst(reset),
+
+//     .data_in(filtered_data),
+//     .valid_in(pulse_shaped_valid),
+//     .data_out(cic_data_out)
+//     // .valid_out()
+// );
+// assign upsampled_filtered = cic_data_out[20:5];
+
 filter up_cic (
   .aclk(clk_80MHz), // input aclk
   .s_axis_data_tdata(filtered_data), // input [7 : 0] s_axis_data_tdata
@@ -239,7 +260,7 @@ always @(*) begin
 	case(state)
 		SHOW_UPSAMPLED: dac_data = samples;	// Display data
 		SHOW_SHAPED:    dac_data = filtered_data + 8'b1000_0000; // After pulse shaping
-		SHOW_FILTERED:  dac_data = upsampled_filtered + 8'b1000_0000;	// Data after anti-imaging filtration
+		SHOW_FILTERED:  dac_data = upsampled_filtered[15:8] + 8'b1000_0000;	// Data after anti-imaging filtration
 		SHOW_MODULATOR: dac_data = modulator_out + 8'b1000_0000;	// Modulated signal
 		default:		dac_data = samples;
 	endcase
@@ -255,6 +276,30 @@ always @(*) begin
 		default:		status_led = 4'b1000;
 	endcase
 end
+
+// Chipscope
+wire [35:0] control0;
+reg [7:0] TRIG0_probe;
+
+always @(*) begin
+	case(state)
+		SHOW_UPSAMPLED: TRIG0_probe = samples;	// Display data
+		SHOW_SHAPED:    TRIG0_probe = filtered_data; // After pulse shaping
+		SHOW_FILTERED:  TRIG0_probe = upsampled_filtered[15:8];	// Data after anti-imaging filtration
+		SHOW_MODULATOR: TRIG0_probe = modulator_out;	// Modulated signal
+		default:		TRIG0_probe = samples;
+	endcase
+end
+
+chipscope_icon icon_inst (
+    .CONTROL0(control0)
+);
+
+chipscope_ila U0 (
+    .CONTROL(control0),
+    .CLK(clk_80MHz),
+    .TRIG0(TRIG0_probe)
+);
 
 
 endmodule

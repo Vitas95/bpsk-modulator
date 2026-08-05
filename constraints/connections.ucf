@@ -46,3 +46,8 @@ NET "dig[5]"    LOC = D8 | IOSTANDARD = "LVCMOS33";
 PIN "pll_main/clkout2_buf.O" CLOCK_DEDICATED_ROUTE = FALSE;
 #PIN "pll_main/clkout1_buf.O" CLOCK_DEDICATED_ROUTE = FALSE;
 
+# Chipscope constraints
+# Input keep/save net constraints
+#
+NET "TRIG0_probe<*>" S;
+# NET "TRIG0_probe<*>" KEEP;
