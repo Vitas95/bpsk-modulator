@@ -15,9 +15,11 @@ module coeff_mem #(
     output logic signed [COEFF_WIDTH-1:0] rd_data
 );
 
+    // Symmetric FIR coefficients without cic compensation
     (* rom_style = "distributed" *) logic signed [COEFF_WIDTH-1:0] mem [0:NUM_COEFFS-1] = '{
     -4, 0, 17, 38, 57, 64
-};
+    };
+
 
     always_ff @(posedge clk) begin
         if (wr_en) begin

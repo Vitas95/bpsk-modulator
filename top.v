@@ -144,7 +144,7 @@ upsampler #(
 mac_fir #(
     .DATA_WIDTH(8),
     .COEFF_WIDTH(8)
-) pulse_shaping(
+) pulse_shaping (
     .clk(clk_80MHz),
     .rst(reset),
     .data_in(upsampled_data),
@@ -158,31 +158,21 @@ assign filtered_data = pulse_shaped_data[7:0];
 ////////////////////////////////////////////////
 
 // Upsampling to DAC sample rate and anti imaging filtration
-// cic_filter #(
-//     .DATA_WIDTH(8),
-//     .UPSAMPLING(20),
-//     .STAGES(4),
-//     .DIFF_DELAY(1)
-// ) up_cic (
-//     .clk(clk_80MHz),
-//     .rst(reset),
+cic_filter #(
+    .DATA_WIDTH(8),
+    .UPSAMPLING(20),
+    .STAGES(4),
+    .DIFF_DELAY(1)
+) up_cic (
+    .clk(clk_80MHz),
+    .rst(reset),
 
-//     .data_in(filtered_data),
-//     .valid_in(pulse_shaped_valid),
-//     .data_out(cic_data_out)
-//     // .valid_out()
-// );
-// assign upsampled_filtered = cic_data_out[20:5];
-
-filter up_cic (
-  .aclk(clk_80MHz), // input aclk
-  .s_axis_data_tdata(filtered_data), // input [7 : 0] s_axis_data_tdata
-  .s_axis_data_tvalid(pulse_shaped_valid), // input s_axis_data_tvalid
-
-  .m_axis_data_tdata(cic_data_out) // output [23 : 0] cic_data_out
-  //.m_axis_data_tvalid(m_axis_data_tvalid) // output m_axis_data_tvalid
+    .data_in(filtered_data),
+    .valid_in(pulse_shaped_valid),
+    .data_out(cic_data_out)
+    // .valid_out()
 );
- assign upsampled_filtered = cic_data_out[20:5];
+assign upsampled_filtered = cic_data_out[20:5];
 
 // NCO 
 ////////////////////////////////////////////////

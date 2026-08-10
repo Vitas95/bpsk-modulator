@@ -7,7 +7,7 @@ module integrator #(
 
     input  [DATA_WIDTH_IN-1:0]  data_in,
     input                       valid_in,
-    output logic [DATA_WIDTH_OUT-1:0] data_out
+    output logic signed [DATA_WIDTH_OUT-1:0] data_out
 );
 
 logic signed [DATA_WIDTH_OUT-1:0]  int_stage_in;

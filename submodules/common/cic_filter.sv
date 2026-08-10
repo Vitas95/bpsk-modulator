@@ -78,7 +78,7 @@ localparam int TOTAL_GROWTH     = OUTPUT_WIDTH - COMB_WIDTH;
 localparam int GROWTH_PER_STAGE = (TOTAL_GROWTH + STAGES - 1) / STAGES; // ceil
 
 logic signed [OUTPUT_WIDTH-1:0] int_data [0:STAGES];
-assign int_data[0][COMB_WIDTH-1:0] = upsampled;
+assign int_data[0][COMB_WIDTH-1:0] = $signed(upsampled);
 
 generate
     for (i = 0; i < STAGES; i = i + 1) begin : int_gen
