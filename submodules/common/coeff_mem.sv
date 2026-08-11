@@ -1,7 +1,7 @@
 module coeff_mem #(
     parameter COEFF_WIDTH = 16,
-    parameter NUM_COEFFS  = 6,
-    parameter ADDR_WIDTH  = $clog2(NUM_COEFFS)
+    parameter NUM_COEFF  = 11,
+    parameter ADDR_WIDTH  = $clog2((NUM_COEFF+1)/2)
 ) (
     input  logic                        clk,
 
@@ -15,9 +15,14 @@ module coeff_mem #(
     output logic signed [COEFF_WIDTH-1:0] rd_data
 );
 
-    // Symmetric FIR coefficients without cic compensation
-    (* rom_style = "distributed" *) logic signed [COEFF_WIDTH-1:0] mem [0:NUM_COEFFS-1] = '{
-    -4, 0, 17, 38, 57, 64
+    // // Symmetric FIR coefficients without cic compensation
+    // (* rom_style = "distributed" *) logic signed [COEFF_WIDTH-1:0] mem [0:(NUM_COEFF+1)/2-1] = '{
+    // -4, 0, 17, 38, 57, 64
+    // };
+
+    // Symmetric FIR coefficients with cic compensation
+    (* rom_style = "distributed" *) logic signed [COEFF_WIDTH-1:0] mem [0:(NUM_COEFF+1)/2-1] = '{
+    2, -12, -4, 26, 78, 128, 150
     };
 
 

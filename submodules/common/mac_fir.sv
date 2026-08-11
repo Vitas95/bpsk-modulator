@@ -1,6 +1,7 @@
 module mac_fir #(
-    parameter DATA_WIDTH = 16,
-    parameter COEFF_WIDTH = 16
+    parameter DATA_WIDTH  = 16,
+    parameter COEFF_WIDTH = 16,
+    parameter NUM_COEFF   = 11
 ) (
     input clk,
     input rst,
@@ -12,12 +13,12 @@ module mac_fir #(
 );
 
 // Input shift register
-logic [DATA_WIDTH-1:0] shift_reg [0:10];
+logic signed [DATA_WIDTH-1:0] shift_reg [0:NUM_COEFF-1];
 
 always_ff @(posedge clk) begin : InputShift    
     if (valid_in) begin
-        shift_reg[0] <= data_in;
-        for (int i = 1; i < 11; i++) begin
+        shift_reg[0] <= $signed(data_in);
+        for (int i = 1; i < NUM_COEFF; i++) begin
             shift_reg[i] <= shift_reg [i-1];
         end
     end
@@ -29,19 +30,19 @@ logic signed [COEFF_WIDTH-1:0] coeff_from_mem;
 
 coeff_mem #(
     .COEFF_WIDTH (COEFF_WIDTH),
-    .NUM_COEFFS  (6)
+    .NUM_COEFF   (NUM_COEFF)
 ) u_coeff_mem (
     .clk     (clk),
-    .wr_en   (1'b0),      // запись пока не используется
+    .wr_en   (1'b0),      // No writing capabilities yet
     .wr_addr ('0),
     .wr_data ('0),
     .rd_addr (coeff_addr),
     .rd_data (coeff_from_mem)
 );
 
-// sign-extend до разрядности мультиплексора (18 бит)
+// sign-extend (18 bit)
 logic signed [17:0] coeff_reg;
-assign coeff_reg = {{(18-COEFF_WIDTH){coeff_from_mem[COEFF_WIDTH-1]}}, coeff_from_mem};
+assign coeff_reg = $signed(coeff_from_mem);
 
 // State machine
 typedef enum logic [1:0] { 
@@ -70,7 +71,7 @@ always_comb begin : state_machine
         end
 
         PAIRS: begin
-            if(cycle_cnt == 4) next_state = CENTER;
+            if(cycle_cnt == ((NUM_COEFF-1)/2)-1) next_state = CENTER;
             else               next_state = PAIRS;
         end
         
@@ -95,13 +96,13 @@ logic signed [17:0] pre_adder_comb, pre_adder_reg;
 always_comb begin : PreAdder
     case(current_state)
         PAIRS: begin 
-            pre_adder_comb = shift_reg[cycle_cnt] + shift_reg[10-cycle_cnt];
+            pre_adder_comb = shift_reg[cycle_cnt] + shift_reg[(NUM_COEFF-1)-cycle_cnt];
             coeff_addr = cycle_cnt[2:0];
         end
 
         CENTER: begin
-            pre_adder_comb = shift_reg[5];
-            coeff_addr = 3'd5;
+            pre_adder_comb = shift_reg[(NUM_COEFF-1)/2];
+            coeff_addr = (NUM_COEFF-1)/2;
         end
 
         default: begin

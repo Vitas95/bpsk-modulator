@@ -3,7 +3,7 @@
 // Module: data_generator
 // Description:
 //   Data generator based on an 8-bit LFSR (Linear Feedback Shift Register).
-//   Every CLK_PER_VALID clock cycles, a new byte (0xFF or 0x01, depending on
+//   Every CLK_PER_VALID clock cycles, a new byte (0b11 or 0b01, depending on
 //   the LSB of the LFSR) appears on m_axis_tdata, accompanied by a one-cycle
 //   m_axis_tvalid pulse. The sequence is pseudo-random and repeats cyclically.
 //   The interface is AXI4-Stream compatible (without tready).
@@ -13,7 +13,7 @@ module data_generator #(
 )(
     input 		  		clock,
     input 		  		reset,
-    output reg [7:0] 	m_axis_tdata,
+    output reg [1:0] 	m_axis_tdata,
 	output reg 		 	m_axis_tvalid
 );
 
@@ -47,9 +47,9 @@ end
 
 always @(*) begin
 	case(shift_reg[0])
-		1'b0: 	 m_axis_tdata = 8'b1111_1111;
-		1'b1: 	 m_axis_tdata = 8'b0000_0001;
-		default: m_axis_tdata = 8'b0000_0000; 
+		1'b0: 	 m_axis_tdata = 2'b11;
+		1'b1: 	 m_axis_tdata = 2'b01;
+		default: m_axis_tdata = 2'b00; 
 	endcase
 end
 

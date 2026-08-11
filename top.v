@@ -30,9 +30,10 @@ reg		  	pll_locked_q;
 // Connections
 wire 		clk_80MHz;
 wire 		pll_locked, reset, pll_reset, reset_b;
-wire [7:0]  samples;
-wire [7:0]  upsampled_data;
-wire [16:0] pulse_shaped_data;
+wire [1:0]  samples;
+wire [1:0]  upsampled_data;
+wire [7:0]  fir_data_in;
+wire [15:0] pulse_shaped_data;
 wire [7:0]  filtered_data;
 wire [31:0] cic_data_out;
 wire [15:0] upsampled_filtered;
@@ -128,7 +129,7 @@ upsampler #(
     .CLK_FREQ        (80_000_000),
     .IN_SAMPLE_RATE  (1_000_000),
     .OUT_SAMPLE_RATE (4_000_000),
-    .DATA_WIDTH      (8),
+    .DATA_WIDTH      (2),
     .HOLD            (0)
 ) u_upsampler (
     .clock          (clk_80MHz),
@@ -141,19 +142,22 @@ upsampler #(
 
 // FIR filter
 ////////////////////////////////////////////////
+assign fir_data_in = {{8{upsampled_data[1]}},upsampled_data};
 mac_fir #(
     .DATA_WIDTH(8),
-    .COEFF_WIDTH(8)
+    .COEFF_WIDTH(16),
+	.NUM_COEFF(13)
 ) pulse_shaping (
     .clk(clk_80MHz),
     .rst(reset),
-    .data_in(upsampled_data),
+    .data_in(fir_data_in),
     .valid_in(upsampled_valid),
     .data_out(pulse_shaped_data),
     .valid_out(pulse_shaped_valid)
 );
 
-assign filtered_data = pulse_shaped_data[7:0];
+// Проблема тут, фильтр работает отлично
+assign filtered_data = pulse_shaped_data[8:1];
 
 ////////////////////////////////////////////////
 
@@ -248,7 +252,7 @@ assign dac_clock = clk_80MHz;
 
 always @(*) begin
 	case(state)
-		SHOW_UPSAMPLED: dac_data = samples;	// Display data
+		SHOW_UPSAMPLED: dac_data = fir_data_in;	// Display data
 		SHOW_SHAPED:    dac_data = filtered_data + 8'b1000_0000; // After pulse shaping
 		SHOW_FILTERED:  dac_data = upsampled_filtered[15:8] + 8'b1000_0000;	// Data after anti-imaging filtration
 		SHOW_MODULATOR: dac_data = modulator_out + 8'b1000_0000;	// Modulated signal
@@ -273,7 +277,7 @@ reg [7:0] TRIG0_probe;
 
 always @(*) begin
 	case(state)
-		SHOW_UPSAMPLED: TRIG0_probe = samples;	// Display data
+		SHOW_UPSAMPLED: TRIG0_probe = fir_data_in;	// Display data
 		SHOW_SHAPED:    TRIG0_probe = filtered_data; // After pulse shaping
 		SHOW_FILTERED:  TRIG0_probe = upsampled_filtered[15:8];	// Data after anti-imaging filtration
 		SHOW_MODULATOR: TRIG0_probe = modulator_out;	// Modulated signal
